@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AttendWise — Attendance Predictor</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,Arial,sans-serif;background:linear-gradient(135deg,#07111f,#102a43,#172554);color:#fff;min-height:100vh;padding:22px}
+.container{max-width:1100px;margin:auto}
+.hero{text-align:center;padding:28px 10px}
+.logo{font-size:44px;font-weight:800;background:linear-gradient(90deg,#38bdf8,#a78bfa);-webkit-background-clip:text;color:transparent}
+.hero p{color:#cbd5e1;margin-top:8px}
+.card{background:rgba(15,23,42,.9);border:1px solid #263550;border-radius:22px;padding:24px;margin-bottom:18px;box-shadow:0 15px 40px rgba(0,0,0,.22)}
+h2{margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+label{display:block;color:#cbd5e1;font-size:14px;margin-bottom:7px}
+select,input{width:100%;padding:13px;border-radius:11px;border:1px solid #334155;background:#0f172a;color:#fff;font-size:15px}
+button{width:100%;margin-top:20px;padding:15px;border:0;border-radius:13px;background:linear-gradient(90deg,#0ea5e9,#8b5cf6);color:#fff;font-size:17px;font-weight:700;cursor:pointer}
+.results{display:none}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat,.info,.day{background:#111c32;border:1px solid #263550;border-radius:15px;padding:17px}
+.small{color:#94a3b8;font-size:13px}.value{font-size:27px;font-weight:800;margin-top:7px}
+.green{color:#4ade80}.yellow{color:#facc15}
+.status{display:inline-block;margin-top:15px;padding:7px 13px;border-radius:18px;font-weight:700}
+.safe{background:#12351f;color:#4ade80}.recover{background:#3b3210;color:#facc15}.critical{background:#421725;color:#fb7185}
+.progress-bg{height:14px;background:#1e293b;border-radius:20px;margin-top:12px;overflow:hidden}.progress{height:100%;width:0;background:linear-gradient(90deg,#22c55e,#38bdf8);transition:.5s}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.schedule{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.day{text-align:center}.day b{display:block;color:#38bdf8;margin-bottom:8px}
+.analysis{color:#cbd5e1;line-height:1.7}
+.footer{text-align:center;color:#64748b;padding:12px}
+@media(max-width:750px){body{padding:10px}.grid,.stats,.info-grid{grid-template-columns:1fr}.schedule{grid-template-columns:repeat(2,1fr)}.logo{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="hero"><div class="logo">AttendWise</div><p>Smart Attendance Predictor & Timetable Assistant</p></div>
+
+<div class="card">
+<h2>🎓 Student Details</h2>
+<div class="grid">
+<div><label>Department</label><select id="dept"><option value="">Select Department</option><option>CSE</option><option>ECE</option><option>BME</option><option>AIDS</option></select></div>
+<div><label>Year / Semester</label><select id="year"><option value="">Select Year / Semester</option><option>I / I</option><option>I / II</option><option>II / III</option><option>II / IV</option><option>III / V</option><option>III / VI</option><option>IV / VII</option><option>IV / VIII</option></select></div>
+<div><label>Section</label><select id="section"><option value="">Select Section</option><option>A</option><option>B</option><option>C</option></select></div>
+<div><label>Subject</label><select id="subject"><option value="">Select Subject</option><option>Engineering Mathematics</option><option>Programming in C++</option><option>Engineering Chemistry</option><option>English</option><option>Data Structures</option><option>Digital Electronics</option><option>Computer Networks</option><option>Database Management Systems</option><option>Operating Systems</option><option>Object Oriented Programming</option></select></div>
+<div><label>Classes Attended</label><input id="attended" type="number" min="0" placeholder="Example: 32"></div>
+<div><label>Total Classes Conducted</label><input id="conducted" type="number" min="1" placeholder="Example: 40"></div>
+<div><label>Target Attendance (%)</label><input id="target" type="number" value="75" min="1" max="100"></div>
+<div><label>Classes Per Week</label><input id="weekly" type="number" value="4" min="1"></div>
+<div><label>Remaining Weeks</label><input id="weeks" type="number" value="8" min="1"></div>
+</div>
+<button onclick="predict()">🚀 Predict My Attendance</button>
+</div>
+
+<div class="results" id="results">
+<div class="card">
+<h2>📊 Attendance Dashboard</h2>
+<div class="stats">
+<div class="stat"><div class="small">Current Attendance</div><div class="value" id="current">0%</div></div>
+<div class="stat"><div class="small">Maximum Classes You Can Miss</div><div class="value green" id="miss">0</div></div>
+<div class="stat"><div class="small">Classes Needed</div><div class="value yellow" id="needed">0</div></div>
+<div class="stat"><div class="small">Projected Attendance</div><div class="value" id="projected">0%</div></div>
+</div>
+<div id="status" class="status"></div>
+<div class="progress-bg"><div id="bar" class="progress"></div></div>
+</div>
+
+<div class="card"><h2>📚 Selected Subject</h2>
+<div class="info-grid">
+<div class="info"><div class="small">Department</div><b id="rdept">-</b></div>
+<div class="info"><div class="small">Year / Semester</div><b id="ryear">-</b></div>
+<div class="info"><div class="small">Section</div><b id="rsection">-</b></div>
+<div class="info"><div class="small">Subject</div><b id="rsubject">-</b></div>
+<div class="info"><div class="small">Weekly Classes</div><b id="rweekly">-</b></div>
+<div class="info"><div class="small">Estimated Future Classes</div><b id="rfuture">-</b></div>
+</div></div>
+
+<div class="card"><h2>🗓️ Weekly Timetable</h2>
+<div class="schedule">
+<div class="day"><b>MON</b><span id="mon">Subject</span></div>
+<div class="day"><b>TUE</b><span>Other Subject</span></div>
+<div class="day"><b>WED</b><span id="wed">Subject</span></div>
+<div class="day"><b>THU</b><span>Other Subject</span></div>
+<div class="day"><b>FRI</b><span id="fri">Subject</span></div>
+</div></div>
+
+<div class="card"><h2>🧠 Smart Analysis</h2><div class="analysis" id="analysis"></div></div>
+</div>
+<div class="footer">AttendWise • Smart Attendance Prediction System</div>
+</div>
+
+<script>
+function predict(){
+const dept=document.getElementById('dept').value,year=document.getElementById('year').value,section=document.getElementById('section').value,subject=document.getElementById('subject').value;
+const a=+document.getElementById('attended').value,c=+document.getElementById('conducted').value,t=+document.getElementById('target').value,w=+document.getElementById('weekly').value,weeks=+document.getElementById('weeks').value;
+if(!dept||!year||!section||!subject||c<=0||a<0||a>c){alert('Please complete all details correctly.');return}
+const cur=a/c*100,future=w*weeks,proj=(a+future)/(c+future)*100;
+let miss=0;
+for(let m=0;m<=future;m++){if(((a+future-m)/(c+future))*100>=t)miss=m;else break}
+let needed=0;
+if(cur<t){while(needed<1000&&((a+needed)/(c+needed))*100<t)needed++}
+let state,cls,msg;
+if(cur>=t){state='SAFE';cls='safe';msg=`Your attendance is currently above ${t}%. You can miss approximately ${miss} future classes while staying at or above the target, based on the estimates entered.`}
+else if(proj>=t){state='RECOVERABLE';cls='recover';msg=`Your attendance is below ${t}%, but it can recover if you attend upcoming classes consistently. You need approximately ${needed} consecutive classes to reach the target.`}
+else{state='CRITICAL';cls='critical';msg=`Your current attendance is below ${t}%, and the projected attendance is still below the target even if you attend all estimated future classes. Monitor attendance closely.`}
+document.getElementById('results').style.display='block';
+document.getElementById('current').textContent=cur.toFixed(1)+'%';
+document.getElementById('miss').textContent=miss;
+document.getElementById('needed').textContent=needed;
+document.getElementById('projected').textContent=proj.toFixed(1)+'%';
+const s=document.getElementById('status');s.textContent=state;s.className='status '+cls;
+document.getElementById('bar').style.width=Math.min(cur,100)+'%';
+document.getElementById('rdept').textContent=dept;document.getElementById('ryear').textContent=year;document.getElementById('rsection').textContent=section;document.getElementById('rsubject').textContent=subject;document.getElementById('rweekly').textContent=w+' classes';document.getElementById('rfuture').textContent=future+' classes';
+document.getElementById('mon').textContent=subject;document.getElementById('wed').textContent=subject;document.getElementById('fri').textContent=subject;
+document.getElementById('analysis').innerHTML=msg+'<br><br><b>Calculation basis:</b> '+a+' attended out of '+c+' conducted classes, '+w+' classes per week for '+weeks+' remaining weeks.';
+document.getElementById('results').scrollIntoView({behavior:'smooth'});
+}
+</script>
+</body>
+</html>
